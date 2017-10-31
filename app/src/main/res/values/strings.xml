@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">GeoCam</string>
+    <string name="camera">Camera</string>
+    <string name="map">Map</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="your_pic">Your Pic</string>
+    <string name="location">Location</string>
+    <string name="longitude">Longitude</string>
+    <string name="image">image</string>
+</resources>
