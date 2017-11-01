@@ -12,4 +12,8 @@
     <string name="longitude_latitude">Longitude/Latitude</string>
     <string name="save_caption">Save Caption</string>
     <string name="caption">Caption</string>
+    <string name="title">Title</string>
+    <string name="save_marker">Save Marker</string>
+    <string name="thumbnail">thumbnail</string>
+    <string name="close">Close</string>
 </resources>

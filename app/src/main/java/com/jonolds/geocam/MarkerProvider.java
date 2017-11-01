@@ -26,9 +26,7 @@ public class MarkerProvider extends ContentProvider {
     public static final String TODO_TABLE_COL_LATITUDE = "LATITUDE";
     public static final String TODO_TABLE_COL_LONGITUDE = "LONGITUDE";
     public static final String TODO_TABLE_COL_ADDRESS = "ADDRESS";
- //   public static final String TODO_TABLE_COL_TIME = "TIME";
 
-    //Table create string based on column names
     private static final String SQL_CREATE_MAIN = "CREATE TABLE " +
             TABLE_NAME+ " " +                       // Table's name
             "(" +                           // The columns in the table

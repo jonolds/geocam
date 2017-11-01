@@ -24,8 +24,8 @@
             </intent-filter>
         </activity>
         <provider
-            android:name="com.jonolds.geocam.MarkerProvider"
-            android:authorities="com.jonolds.jonstodos.todoprovider"
+            android:name=".MarkerProvider"
+            android:authorities="com.jonolds.geocam.markerprovider"
             android:enabled="true"
             android:exported="true" />
         <provider

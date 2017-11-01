@@ -3,19 +3,18 @@ package com.jonolds.geocam;
 import android.Manifest;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.PermissionChecker;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -43,16 +42,18 @@ import java.util.ArrayList;
 public class MainActivity extends AppCompatActivity implements
         GoogleApiClient.ConnectionCallbacks, OnConnectionFailedListener, LocationListener {
     private static final String LOGTAG = "MainActivity";
-    static final int REQUEST_IMAGE_CAPTURE = 1;
-    private String mCurrentPhotoPath;
-
-    static final int REQUEST_TAKE_PHOTO = 1;
-    private static final String CAMERA_FP_AUTHORITY = "com.jonolds.fileprovider";
     private FusedLocationProviderClient myLocPro;
     public static Location loc;
     private LocationRequest locReq;
     private LocationCallback myLocCB;
     public boolean boolUpdateLoc = false;
+    String[] projection = {
+            MarkerProvider.TODO_TABLE_COL_ID,
+            MarkerProvider.TODO_TABLE_COL_TITLE,
+            MarkerProvider.TODO_TABLE_COL_LATITUDE,
+            MarkerProvider.TODO_TABLE_COL_LONGITUDE,
+            MarkerProvider.TODO_TABLE_COL_ADDRESS
+    };
 
     /*onCreate callback.
     Set up all private instances and check for external write permissions
@@ -68,11 +69,14 @@ public class MainActivity extends AppCompatActivity implements
         myLocCB = new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
-                Log.e(String.valueOf(locationResult.getLastLocation().getLongitude()), "Long");
                 for (Location location : locationResult.getLocations()) {
-                    loc = location;
-                    setLatLong();
-                    Log.e(String.valueOf(locationResult.getLastLocation().getLatitude()), "Lat");
+                    loc.setLatitude(location.getLatitude());
+                    loc.setLongitude(location.getLongitude());
+                    TextView lat = findViewById(R.id.latView);
+                    TextView lon = findViewById(R.id.longView);
+                    lat.setText(String.valueOf(loc.getLatitude()));
+                    lon.setText(String.valueOf(loc.getLongitude()));
+
                 }
             }
         };
@@ -82,14 +86,24 @@ public class MainActivity extends AppCompatActivity implements
 
     public void takePic(View view) {
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-        ft.replace(R.id.your_placeholder, new CamFragment());
+        ft.replace(R.id.cam_placeholder, new CamFragment());
+        ft.addToBackStack(null);
         ft.commit();
     }
+
+    public void openMap(View view) {
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        ft.replace(R.id.map_placeholder, new MapFragment());
+        ft.addToBackStack(null);
+        ft.commit();
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
         if(boolUpdateLoc)
         startLocationUpdates();
+        tableData();
     }
 
     public void locSetup() {
@@ -186,14 +200,27 @@ public class MainActivity extends AppCompatActivity implements
         ((TextView)findViewById(R.id.latView)).setText(String.valueOf(getLoc().getLatitude()));
     }
 
-    public void setLatLong() {
-        ((TextView)findViewById(R.id.longView)).setText(String.valueOf(getLoc().getLongitude()));
-        ((TextView)findViewById(R.id.latView)).setText(String.valueOf(getLoc().getLatitude()));
-    }
-
     public void startLocationUpdates() {
         if(PermissionChecker.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == 0)
             myLocPro.requestLocationUpdates(locReq, myLocCB, null);
+    }
+
+    public void tableData() {
+        Cursor cursor = getContentResolver().query(MarkerProvider.CONTENT_URI,projection,null,null,"_ID ASC");
+        if(cursor != null) {
+            if(cursor.getCount() > 0){
+                for(int i = 0; i < cursor.getCount(); i++) {
+                    cursor.moveToPosition(i);
+                    Log.e("Cursor pos(i) ", String.valueOf(i));
+                    Log.e("ID ", String.valueOf(cursor.getInt(0)));
+                    Log.e("Title ", cursor.getString(1));
+                    Log.e("Latitude ", cursor.getString(2));
+                    Log.e("Longitude ", String.valueOf(cursor.getInt(3)));
+                    Log.e("Address ", cursor.getString(4));
+                }
+            }
+            cursor.close();
+        }
     }
 
     @Override

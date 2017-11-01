@@ -110,15 +110,14 @@
         android:id="@+id/mapButton"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:text="@string/map"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginTop="8dp"
         android:layout_marginBottom="8dp"
+        android:layout_marginTop="8dp"
+        android:onClick="openMap"
+        android:text="@string/map"
+        app:layout_constraintBottom_toTopOf="@+id/guidelineH50"
         app:layout_constraintLeft_toRightOf="@+id/guidelineV50"
         app:layout_constraintRight_toLeftOf="@+id/guidelineV98"
-        app:layout_constraintTop_toBottomOf="@+id/guidelineH35"
-        app:layout_constraintBottom_toTopOf="@+id/guidelineH50"/>
+        app:layout_constraintTop_toBottomOf="@+id/guidelineH35" />
 
     <Button
         android:id="@+id/latLong"
@@ -154,9 +153,14 @@
         app:layout_constraintTop_toBottomOf="@+id/guidelineH93"
         app:layout_constraintBottom_toTopOf="@+id/guidelineH98" />
 
+    <fragment
+        android:id="@+id/map_placeholder"
+        class="com.jonolds.geocam.MapFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
 
     <FrameLayout
-        android:id="@+id/your_placeholder"
+        android:id="@+id/cam_placeholder"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:elevation="5dp"
