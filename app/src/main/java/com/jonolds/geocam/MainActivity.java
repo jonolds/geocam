@@ -1,46 +1,58 @@
 package com.jonolds.geocam;
 
-import android.content.Context;
-import android.graphics.BitmapFactory;
 import android.Manifest;
-import android.content.Intent;
+import android.content.IntentSender;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
 import android.location.Location;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
-import android.provider.MediaStore;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.FileProvider;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.PermissionChecker;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.common.api.CommonStatusCodes;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
+import com.google.android.gms.common.api.ResolvableApiException;
 import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.LocationSettingsRequest;
+import com.google.android.gms.location.LocationSettingsResponse;
+import com.google.android.gms.location.LocationSettingsStatusCodes;
+import com.google.android.gms.location.SettingsClient;
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 
-import java.io.File;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.Locale;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements
+        GoogleApiClient.ConnectionCallbacks, OnConnectionFailedListener, LocationListener {
     private static final String LOGTAG = "MainActivity";
     static final int REQUEST_IMAGE_CAPTURE = 1;
     private String mCurrentPhotoPath;
-    private ImageView mImageView;
+
     static final int REQUEST_TAKE_PHOTO = 1;
     private static final String CAMERA_FP_AUTHORITY = "com.jonolds.fileprovider";
     private FusedLocationProviderClient myLocPro;
-    private double currentLat;
-    private double currentLong;
+    public static Location loc;
+    private LocationRequest locReq;
+    private LocationCallback myLocCB;
+    public boolean boolUpdateLoc = false;
 
     /*onCreate callback.
     Set up all private instances and check for external write permissions
@@ -48,114 +60,89 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_main);
         checkPermissions();
+        loc = new Location("");
         myLocPro = LocationServices.getFusedLocationProviderClient(this);
+        myLocCB = new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                Log.e(String.valueOf(locationResult.getLastLocation().getLongitude()), "Long");
+                for (Location location : locationResult.getLocations()) {
+                    loc = location;
+                    setLatLong();
+                    Log.e(String.valueOf(locationResult.getLastLocation().getLatitude()), "Lat");
+                }
+            }
+        };
+
         //Set the mImageView private member to associate with the ImageView widget on the MainLayout
-        mImageView = findViewById(R.id.thumb);
     }
 
-    public void getLong(View view) {
+    public void takePic(View view) {
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        ft.replace(R.id.your_placeholder, new CamFragment());
+        ft.commit();
+    }
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if(boolUpdateLoc)
+        startLocationUpdates();
+    }
+
+    public void locSetup() {
         if(PermissionChecker.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == 0) {
+
             myLocPro.getLastLocation().addOnSuccessListener(this, new OnSuccessListener<Location>(){
                 @Override
                 public void onSuccess(Location location) {
-                    if(location != null)
-                        ((TextView)findViewById(R.id.longView)).setText(String.valueOf(location.getLongitude()));
+                    if(location != null) {
+                        loc.setLatitude(location.getLatitude());
+                        loc.setLongitude(location.getLongitude());
+                    }
                 }
             });
+            //
+            locReq = new LocationRequest().setInterval(5000).setFastestInterval(2000).setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+            LocationSettingsRequest.Builder LSRB = new LocationSettingsRequest.Builder();
+            LSRB.addLocationRequest(locReq);
+
+            SettingsClient client = LocationServices.getSettingsClient(this);
+            Task<LocationSettingsResponse> task = client.checkLocationSettings(LSRB.build());
+
+            task.addOnSuccessListener(this, new OnSuccessListener<LocationSettingsResponse>() {
+                @Override
+                public void onSuccess(LocationSettingsResponse locationSettingsResponse) {
+                    Log.e("on", "Success");
+                }
+            });
+
+            task.addOnFailureListener(this, new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception e) {
+                    Log.e("onFail", String.valueOf(e));
+                    int statusCode = ((ApiException) e).getStatusCode();
+                    switch(statusCode) {
+                        case CommonStatusCodes.RESOLUTION_REQUIRED:
+                            try {
+                                ResolvableApiException resolvable = (ResolvableApiException) e;
+                                resolvable.startResolutionForResult(MainActivity.this, 1);
+                            } catch (IntentSender.SendIntentException sendEx) {
+                                Log.e("statusCode ", String.valueOf(sendEx));
+                            }
+                            break;
+                        case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
+                            break;
+                    }
+                }
+            });
+
         }
 
     }
 
-    //takePic() -- Start the camera Intent
-    public void takePic(View view) {
-        //Create an Intent to use the default Camera Application
-        Intent takePicIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        // Ensure that there's a camera activity to handle the intent
-        if (takePicIntent.resolveActivity(getPackageManager()) != null) {
-            // Create the File where the photo should go
-            File photoFile = null;
-            try {
-                photoFile = createImageFile();
-            } catch (IOException ex) {
-                Log.e(LOGTAG,ex.getMessage());
-            }
-            // Continue only if the File was successfully created
-            if (photoFile != null) {
-                //Use the FileProvider defined in the Manifest as the authority for sharing across the Intent
-                //Provides a content:// URI instead of a file:// URI which throws an error post API 24
-                Uri photoURI = FileProvider.getUriForFile(this,CAMERA_FP_AUTHORITY,photoFile);
-                //Put the content:// URI as the output location for the photo
-                takePicIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
-                //Start the Camera Application for a result
-                startActivityForResult(takePicIntent, REQUEST_TAKE_PHOTO);
-            }
-        }
-    }
-
-    private File createImageFile() throws IOException {
-        String imageFileName = "JPEG_" + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date()) + "_";
-        //Use ExternalStoragePublicDirectory so that it is accessible for the MediaScanner
-        //Associate the directory with your application by adding an additional subdirectory
-        File storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),"MyCamera");
-        if(!storageDir.exists()){
-            System.out.println(storageDir.mkdir());
-        }
-        File image = File.createTempFile(imageFileName, ".jpg", storageDir);
-
-        // Save a file: path for use with ACTION_VIEW intents
-        mCurrentPhotoPath = image.getAbsolutePath();
-        Log.d(LOGTAG,"Storage Directory: " + storageDir.getAbsolutePath());
-        return image;
-    }
-
-
-
-    //This function puts photo from mCurrentPhotoPath and allows the Media Gallery to access it. Photo must be publicly accessible
-    private void galleryAddPic() {
-        //Two ways to use the MediaScanner
-        //Use the MediaScannerConnection API
-        //Has callback to see if it works. URI returns false if does not work
-//        MediaScannerConnection.scanFile(getApplicationContext(), new String[]{mCurrentPhotoPath}, null, new MediaScannerConnection.OnScanCompletedListener() {
-//            @Override
-//            public void onScanCompleted(String path, Uri uri) {
-//                Log.d(LOGTAG,path);
-//                Log.d(LOGTAG,uri.toString());
-//            }
-//        });
-
-        //Fire off an Intent to use the MediaScanner
-        //Place the URI of the file as the data
-        File f = new File(mCurrentPhotoPath);
-        Intent myMediaIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-        myMediaIntent.setData(Uri.fromFile(f));
-        getApplicationContext().sendBroadcast(myMediaIntent);
-    }
-
-    /**
-     * onActivityResult callback fires after startActivityForResult finishes the new activity
-     * @param requestCode -- Int associated with the activity request for switching activity
-     * @param resultCode -- Result value from the startedActivity
-     * @param data -- Return Values
-     */
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        //If the Request is to take a photo and it returned OK
-        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
-            //Extras does not contain bitmap if Image is saved to a file
-            //Bundle extras = data.getExtras();
-            //Create a BitmapFactoryOptions object to get Bitmap from a file
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-            //Load the Bitmap from the Image file created by the camera
-            Bitmap imageBitmap = BitmapFactory.decodeFile(mCurrentPhotoPath,options);
-            //Set the ImageView to the bitmap
-            mImageView.setImageBitmap(imageBitmap);
-            //Add the photo to the gallery
-            galleryAddPic();
-        }
-    }
 
     public void checkPermissions() {
         if (Build.VERSION.SDK_INT >= 23) {
@@ -180,12 +167,50 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         for(int i = 0; i < permissions.length; i++)
             if(grantResults[i]== PackageManager.PERMISSION_GRANTED){
                 Log.e(LOGTAG,"Permission: "+permissions[i]+ " was "+grantResults[i]);
             }
+            boolUpdateLoc = true;
+        locSetup();
     }
 
+    public static Location getLoc() {
+        return loc;
+    }
+
+    public void setLatLong(View view) {
+        ((TextView)findViewById(R.id.longView)).setText(String.valueOf(getLoc().getLongitude()));
+        ((TextView)findViewById(R.id.latView)).setText(String.valueOf(getLoc().getLatitude()));
+    }
+
+    public void setLatLong() {
+        ((TextView)findViewById(R.id.longView)).setText(String.valueOf(getLoc().getLongitude()));
+        ((TextView)findViewById(R.id.latView)).setText(String.valueOf(getLoc().getLatitude()));
+    }
+
+    public void startLocationUpdates() {
+        if(PermissionChecker.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == 0)
+            myLocPro.requestLocationUpdates(locReq, myLocCB, null);
+    }
+
+    @Override
+    public void onConnected(@Nullable Bundle bundle) {
+        if(boolUpdateLoc)
+            startLocationUpdates();
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+    }
 }

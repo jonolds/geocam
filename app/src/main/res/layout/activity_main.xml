@@ -7,6 +7,10 @@
     android:layout_height="match_parent"
     tools:context="com.jonolds.geocam.MainActivity">
 
+
+
+
+
     <android.support.constraint.Guideline
         android:id="@+id/guidelineV2"
         android:layout_width="wrap_content"
@@ -57,6 +61,21 @@
         app:layout_constraintGuide_percent="0.60" />
 
     <android.support.constraint.Guideline
+        android:id="@+id/guidelineH88"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.88" />
+
+
+    <android.support.constraint.Guideline
+        android:id="@+id/guidelineH93"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.93" />
+
+    <android.support.constraint.Guideline
         android:id="@+id/guidelineH98"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -64,7 +83,7 @@
         app:layout_constraintGuide_percent="0.98" />
 
     <ImageView
-        android:id="@+id/thumb"
+        android:id="@+id/thumb2"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:contentDescription="@string/image"
@@ -102,15 +121,27 @@
         app:layout_constraintBottom_toTopOf="@+id/guidelineH50"/>
 
     <Button
-        android:id="@+id/button"
+        android:id="@+id/latLong"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:text="@string/longitude"
-        android:onClick="getLong"
+        android:text="@string/longitude_latitude"
+        android:onClick="setLatLong"
         app:layout_constraintLeft_toRightOf="@+id/guidelineV2"
         app:layout_constraintRight_toLeftOf="@+id/guidelineV50"
-        app:layout_constraintTop_toBottomOf="@+id/guidelineH50"
-        app:layout_constraintBottom_toTopOf="@+id/guidelineH60" />
+        app:layout_constraintTop_toBottomOf="@+id/guidelineH88"
+        app:layout_constraintBottom_toTopOf="@+id/guidelineH98" />
+
+
+    <TextView
+        android:id="@+id/latView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:ems="10"
+        android:text=""
+        app:layout_constraintLeft_toRightOf="@+id/guidelineV50"
+        app:layout_constraintRight_toLeftOf="@+id/guidelineV98"
+        app:layout_constraintTop_toBottomOf="@+id/guidelineH88"
+        app:layout_constraintBottom_toTopOf="@+id/guidelineH93" />
 
     <TextView
         android:id="@+id/longView"
@@ -120,7 +151,15 @@
         android:text=""
         app:layout_constraintLeft_toRightOf="@+id/guidelineV50"
         app:layout_constraintRight_toLeftOf="@+id/guidelineV98"
-        app:layout_constraintTop_toBottomOf="@+id/guidelineH50"
-        app:layout_constraintBottom_toTopOf="@+id/guidelineH60" />
+        app:layout_constraintTop_toBottomOf="@+id/guidelineH93"
+        app:layout_constraintBottom_toTopOf="@+id/guidelineH98" />
+
+
+    <FrameLayout
+        android:id="@+id/your_placeholder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:elevation="5dp"
+        />
 
 </android.support.constraint.ConstraintLayout>

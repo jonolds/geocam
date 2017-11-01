@@ -9,4 +9,7 @@
     <string name="location">Location</string>
     <string name="longitude">Longitude</string>
     <string name="image">image</string>
+    <string name="longitude_latitude">Longitude/Latitude</string>
+    <string name="save_caption">Save Caption</string>
+    <string name="caption">Caption</string>
 </resources>
