@@ -1,5 +1,6 @@
 package com.jonolds.geocam;
 
+import android.content.Context;
 import android.graphics.BitmapFactory;
 import android.Manifest;
 import android.content.Intent;
@@ -13,6 +14,7 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.FileProvider;
+import android.support.v4.content.PermissionChecker;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -20,10 +22,12 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.tasks.OnSuccessListener;
 
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
 
@@ -35,9 +39,8 @@ public class MainActivity extends AppCompatActivity {
     static final int REQUEST_TAKE_PHOTO = 1;
     private static final String CAMERA_FP_AUTHORITY = "com.jonolds.fileprovider";
     private FusedLocationProviderClient myLocPro;
-
-    public void getLong(View view) {
-    }
+    private double currentLat;
+    private double currentLong;
 
     /*onCreate callback.
     Set up all private instances and check for external write permissions
@@ -46,46 +49,27 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        checkPermissions();
         myLocPro = LocationServices.getFusedLocationProviderClient(this);
-
-        //This function returns a boolean for if you have permissions
-        isPermissionGranted(Manifest.permission.WRITE_EXTERNAL_STORAGE);
         //Set the mImageView private member to associate with the ImageView widget on the MainLayout
         mImageView = findViewById(R.id.thumb);
     }
 
-    //Boolean function to check if permissions are granted. If not, create an activity to request permissions
-    public boolean isPermissionGranted(String permission) {
-        if (Build.VERSION.SDK_INT >= 23) {
-            if (checkSelfPermission(String.valueOf("android." + permission)) == PackageManager.PERMISSION_GRANTED) {
-                Log.e(LOGTAG,"Permission is granted");
-                return true;
-            } else {
-                Log.e(LOGTAG,"Permission is revoked");
-                ActivityCompat.requestPermissions(this, new String[]{permission}, 1);
-                return false;
-            }
+    public void getLong(View view) {
+        if(PermissionChecker.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == 0) {
+            myLocPro.getLastLocation().addOnSuccessListener(this, new OnSuccessListener<Location>(){
+                @Override
+                public void onSuccess(Location location) {
+                    if(location != null)
+                        ((TextView)findViewById(R.id.longView)).setText(String.valueOf(location.getLongitude()));
+                }
+            });
         }
-        else { //permission is automatically granted on sdk<23 upon installation
-            Log.v(LOGTAG,"Permission is granted");
-            return true;
-        }
-    }
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if(grantResults[0]== PackageManager.PERMISSION_GRANTED){
-            Log.e(LOGTAG,"Permission: "+permissions[0]+ "was "+grantResults[0]);
-            //resume tasks needing this permission
-        }
+
     }
 
+    //takePic() -- Start the camera Intent
     public void takePic(View view) {
-        dispatchTakePic();
-    }
-
-    //dispatchTakePictureIntent() -- Start the camera Intent
-    private void dispatchTakePic() {
         //Create an Intent to use the default Camera Application
         Intent takePicIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         // Ensure that there's a camera activity to handle the intent
@@ -111,14 +95,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private File createImageFile() throws IOException {
-        // Create an image file name
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
-        String imageFileName = "JPEG_" + timeStamp + "_";
+        String imageFileName = "JPEG_" + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date()) + "_";
         //Use ExternalStoragePublicDirectory so that it is accessible for the MediaScanner
         //Associate the directory with your application by adding an additional subdirectory
         File storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),"MyCamera");
         if(!storageDir.exists()){
-            storageDir.mkdir();
+            System.out.println(storageDir.mkdir());
         }
         File image = File.createTempFile(imageFileName, ".jpg", storageDir);
 
@@ -127,6 +109,8 @@ public class MainActivity extends AppCompatActivity {
         Log.d(LOGTAG,"Storage Directory: " + storageDir.getAbsolutePath());
         return image;
     }
+
+
 
     //This function puts photo from mCurrentPhotoPath and allows the Media Gallery to access it. Photo must be publicly accessible
     private void galleryAddPic() {
@@ -172,4 +156,36 @@ public class MainActivity extends AppCompatActivity {
             galleryAddPic();
         }
     }
+
+    public void checkPermissions() {
+        if (Build.VERSION.SDK_INT >= 23) {
+            String[] permissions = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.ACCESS_FINE_LOCATION};
+            ArrayList<String> permsNeeded = new ArrayList<>();
+
+            for (int i = 0; i < permissions.length; i++) {
+                if (checkSelfPermission(String.valueOf("android." + permissions[i])) == PackageManager.PERMISSION_GRANTED) {
+                    Log.e(permissions[i], " is granted");
+                } else {
+                    Log.e(permissions[i], " is revoked");
+                    permsNeeded.add(permissions[i]);
+                }
+            }
+            if(permsNeeded.size() > 0) {
+                String[] perms = permsNeeded.toArray(new String[permsNeeded.size()]);
+                ActivityCompat.requestPermissions(this, perms, 1);
+            }
+        }
+        else
+            Log.e("api greater or ", "equal to 23");
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        for(int i = 0; i < permissions.length; i++)
+            if(grantResults[i]== PackageManager.PERMISSION_GRANTED){
+                Log.e(LOGTAG,"Permission: "+permissions[i]+ " was "+grantResults[i]);
+            }
+    }
+
 }
