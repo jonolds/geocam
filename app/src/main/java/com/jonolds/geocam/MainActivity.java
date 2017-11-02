@@ -33,14 +33,18 @@ import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.LocationSettingsResponse;
 import com.google.android.gms.location.LocationSettingsStatusCodes;
 import com.google.android.gms.location.SettingsClient;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 
+import org.w3c.dom.Text;
+
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity implements
-        GoogleApiClient.ConnectionCallbacks, OnConnectionFailedListener, LocationListener {
+        GoogleApiClient.ConnectionCallbacks, OnConnectionFailedListener, LocationListener, OnMapReadyCallback {
     private static final String LOGTAG = "MainActivity";
     private FusedLocationProviderClient myLocPro;
     public static Location loc;
@@ -72,8 +76,8 @@ public class MainActivity extends AppCompatActivity implements
                 for (Location location : locationResult.getLocations()) {
                     loc.setLatitude(location.getLatitude());
                     loc.setLongitude(location.getLongitude());
-                    TextView lat = findViewById(R.id.latView);
-                    TextView lon = findViewById(R.id.longView);
+                    TextView lat = (TextView)findViewById(R.id.latView);
+                    TextView lon = (TextView)findViewById(R.id.longView);
                     lat.setText(String.valueOf(loc.getLatitude()));
                     lon.setText(String.valueOf(loc.getLongitude()));
 
@@ -86,14 +90,14 @@ public class MainActivity extends AppCompatActivity implements
 
     public void takePic(View view) {
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-        ft.replace(R.id.cam_placeholder, new CamFragment());
+        ft.replace(R.id.my_placeholder, new CamFragment());
         ft.addToBackStack(null);
         ft.commit();
     }
 
     public void openMap(View view) {
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-        ft.replace(R.id.map_placeholder, new MapFragment());
+        ft.replace(R.id.my_placeholder, new MapFragment());
         ft.addToBackStack(null);
         ft.commit();
     }
@@ -119,7 +123,7 @@ public class MainActivity extends AppCompatActivity implements
                 }
             });
             //
-            locReq = new LocationRequest().setInterval(5000).setFastestInterval(2000).setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+            locReq = new LocationRequest().setInterval(30000).setFastestInterval(8000).setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
             LocationSettingsRequest.Builder LSRB = new LocationSettingsRequest.Builder();
             LSRB.addLocationRequest(locReq);
 
@@ -239,5 +243,10 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     public void onLocationChanged(Location location) {
+    }
+
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
+
     }
 }

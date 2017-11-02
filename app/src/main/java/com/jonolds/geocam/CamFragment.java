@@ -1,6 +1,5 @@
 package com.jonolds.geocam;
 
-import android.app.FragmentTransaction;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -28,7 +27,6 @@ import java.util.Date;
 import java.util.Locale;
 
 import static android.app.Activity.RESULT_OK;
-import static com.jonolds.geocam.R.id.thumb;
 
 public class CamFragment extends Fragment implements View.OnClickListener {
     static final int REQUEST_TAKE_PHOTO = 1;
@@ -48,7 +46,7 @@ public class CamFragment extends Fragment implements View.OnClickListener {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_cam, container, false);
-        Button b = view.findViewById(R.id.saveMarker);
+        Button b = (Button)view.findViewById(R.id.saveMarker);
         b.setOnClickListener(this);
         return view;
 
@@ -106,7 +104,7 @@ public class CamFragment extends Fragment implements View.OnClickListener {
             //Extras does not contain bitmap if Image is saved to a file
             //Bundle extras = data.getExtras();
             //Create a BitmapFactoryOptions object to get Bitmap from a file
-            mImageView = getView().findViewById(R.id.thumb);
+            mImageView = (ImageView)getView().findViewById(R.id.thumb);
             BitmapFactory.Options options = new BitmapFactory.Options();
             options.inPreferredConfig = Bitmap.Config.ARGB_8888;
             //Load the Bitmap from the Image file created by the camera
